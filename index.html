@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vocabulary Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0f;--card:#1a1a26;--border:#2a2a3a;--accent:#c8a96e;--accent2:#7c9cff;--text:#e8e8f0;--muted:#6a6a8a;--ok:#5cba8a;--err:#e05c6a}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(200,169,110,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(200,169,110,.035) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:44px 22px}
+.header{text-align:center;margin-bottom:52px}
+.header h1{font-family:'Playfair Display',serif;font-size:clamp(34px,5.5vw,56px);font-weight:900;color:var(--text);line-height:1.05;letter-spacing:-1px}
+.header h1 em{color:var(--accent);font-style:italic}
+.screen{display:none}
+.screen.active{display:block;animation:fadeUp .35s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.lbl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;margin-bottom:14px}
+.unit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:10px;margin-bottom:28px}
+.unit-btn{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:14px 10px;cursor:pointer;transition:all .2s;text-align:center;font-family:'DM Sans',sans-serif}
+.unit-btn:hover{border-color:var(--accent)}
+.unit-btn.selected{background:rgba(200,169,110,.1);border-color:var(--accent)}
+.unit-num{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--text);display:block;margin-bottom:3px}
+.unit-btn.selected .unit-num{color:var(--accent)}
+.unit-topic{font-size:11px;color:var(--muted);margin-bottom:4px}
+.unit-count{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;opacity:.7}
+.row{display:flex;align-items:center;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:6px;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;transition:all .18s;font-weight:500}
+.btn-gold{background:var(--accent);color:#0a0a0f;font-weight:700}
+.btn-gold:hover{background:#d4b87e;transform:translateY(-1px)}
+.btn-outline{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-outline:hover{color:var(--text);border-color:var(--muted)}
+.btn-card{background:var(--card);color:var(--text);border:1px solid var(--border)}
+.btn-card:hover{border-color:var(--accent);color:var(--accent)}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px}
+.mode-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px 24px;cursor:pointer;transition:all .22s;position:relative;overflow:hidden}
+.mode-card::after{content:'';position:absolute;inset:0 0 auto;height:2px;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .28s ease}
+.mode-card:hover::after{transform:scaleX(1)}
+.mode-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 10px 32px rgba(0,0,0,.45)}
+.mode-icon{font-size:30px;margin-bottom:14px;display:block}
+.mode-title{font-family:'Playfair Display',serif;font-size:21px;color:var(--text);margin-bottom:6px}
+.mode-desc{font-size:12px;color:var(--muted);line-height:1.65}
+.divider{height:1px;background:var(--border);margin:26px 0}
+.meta{display:flex;align-items:center;gap:14px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.prog-wrap{flex:1}
+.prog-track{height:2px;background:var(--border);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width .4s ease}
+.prog-text{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-align:center;margin-top:6px;letter-spacing:1px}
+.speak-btn{background:rgba(124,156,255,.08);border:1px solid rgba(124,156,255,.18);color:var(--accent2);border-radius:6px;padding:8px 14px;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;transition:all .18s;text-transform:uppercase;white-space:nowrap}
+.speak-btn:hover{background:rgba(124,156,255,.16)}
+.card-scene{perspective:1200px;margin-bottom:22px}
+.card-inner{position:relative;min-height:310px;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.23,1,.32,1)}
+.card-inner.flipped{transform:rotateY(180deg)}
+.card-face{position:absolute;inset:0;backface-visibility:hidden;background:var(--card);border:1px solid var(--border);border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:44px;cursor:pointer;user-select:none}
+.card-face.back{transform:rotateY(180deg);background:linear-gradient(135deg,rgba(200,169,110,.06),rgba(124,156,255,.04));border-color:rgba(200,169,110,.25)}
+.card-tap{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:22px;opacity:.7}
+.card-word{font-family:'Playfair Display',serif;font-size:clamp(28px,4.5vw,46px);font-weight:700;color:var(--text);text-align:center;line-height:1.2}
+.card-word.gold{color:var(--accent)}
+.card-pos{font-family:'Playfair Display',serif;font-size:14px;font-style:italic;color:var(--accent2);margin-top:10px;opacity:.85}
+.card-def{font-size:15px;color:var(--muted);margin-top:12px;text-align:center;line-height:1.6;max-width:480px;font-family:'DM Sans',sans-serif}
+.card-badge{position:absolute;top:18px;right:22px;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);opacity:.45}
+.nav{display:flex;justify-content:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.options{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:22px}
+.options-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
+.tog-row{display:flex;align-items:center;gap:12px;padding:9px 0;font-size:12px;color:var(--muted);cursor:pointer;user-select:none;border-bottom:1px solid var(--border)}
+.tog-row:last-child{border-bottom:none;padding-bottom:0}
+.tog{width:38px;height:20px;border-radius:10px;background:var(--border);position:relative;transition:background .2s;flex-shrink:0}
+.tog.on{background:var(--accent)}
+.tog::after{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left .18s}
+.tog.on::after{left:21px}
+.dict-prompt{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:44px 40px;text-align:center;margin-bottom:22px;position:relative;overflow:hidden}
+.dict-prompt::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% -10%,rgba(200,169,110,.07),transparent 55%);pointer-events:none}
+.dict-counter{font-family:'Playfair Display',serif;font-size:72px;font-weight:900;color:rgba(200,169,110,.1);line-height:1}
+.dict-pos{font-family:'Playfair Display',serif;font-style:italic;font-size:15px;color:var(--accent2);margin-top:4px;opacity:.8}
+.dict-def{font-size:18px;color:var(--text);margin-top:10px;line-height:1.6;font-family:'DM Sans',sans-serif;font-weight:400;max-width:540px;margin-left:auto;margin-right:auto}
+.dict-hint{font-size:11px;color:var(--muted);margin-top:12px;font-family:'DM Mono',monospace;letter-spacing:1px}
+kbd{display:inline-block;padding:1px 6px;border:1px solid var(--border);border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;background:rgba(255,255,255,0.06);color:var(--muted)}
+.dict-input-row{display:flex;gap:10px;margin-bottom:14px}
+.dict-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:15px 18px;color:var(--text);font-family:'DM Mono',monospace;font-size:15px;outline:none;transition:border-color .18s;letter-spacing:1.5px}
+.dict-input:focus{border-color:var(--accent)}
+.dict-input.correct{border-color:var(--ok);background:rgba(92,186,138,.07)}
+.dict-input.wrong{border-color:var(--err);background:rgba(224,92,106,.07)}
+.rbanner{padding:14px 18px;border-radius:9px;font-size:13px;margin-bottom:14px;display:flex;align-items:center;gap:10px;animation:sd .25s ease}
+@keyframes sd{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:translateY(0)}}
+.rbanner.ok{background:rgba(92,186,138,.1);border:1px solid rgba(92,186,138,.25);color:var(--ok)}
+.rbanner.bad{background:rgba(224,92,106,.1);border:1px solid rgba(224,92,106,.25);color:var(--err)}
+.ans-word{font-family:'Playfair Display',serif;font-size:18px;color:var(--ok)}
+.results-hero{text-align:center;padding:36px 20px 28px}
+.score-ring{width:136px;height:136px;border-radius:50%;border:3px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 22px;position:relative;background:var(--card)}
+.score-ring::before{content:'';position:absolute;inset:-3px;border-radius:50%;background:conic-gradient(var(--accent) var(--deg),var(--border) 0);z-index:-1}
+.score-pct{font-family:'Playfair Display',serif;font-size:40px;font-weight:900;color:var(--accent);line-height:1}
+.score-lbl{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+.results-title{font-family:'Playfair Display',serif;font-size:26px;margin-bottom:6px}
+.results-sub{font-size:13px;color:var(--muted)}
+.stats-row{display:flex;justify-content:center;gap:28px;margin-bottom:22px}
+.stat{text-align:center}
+.stat-n{font-family:'Playfair Display',serif;font-size:26px;font-weight:700}
+.green{color:var(--ok)}.red{color:var(--err)}
+.stat-l{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;margin-top:2px;text-transform:uppercase}
+.wrong-list{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:22px}
+.wl-hdr{padding:14px 18px;border-bottom:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--err);text-transform:uppercase}
+.wi{display:flex;align-items:flex-start;padding:13px 18px;border-bottom:1px solid var(--border);gap:12px}
+.wi:last-child{border-bottom:none}
+.wi-n{width:22px;height:22px;background:rgba(224,92,106,.12);color:var(--err);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9px;flex-shrink:0;margin-top:2px}
+.wi-info{flex:1}
+.wi-word{font-family:'Playfair Display',serif;font-size:16px;color:var(--text)}
+.wi-def{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.5}
+.wi-yours{font-family:'DM Mono',monospace;font-size:10px;color:var(--err);margin-top:3px;opacity:.8}
+@media(max-width:580px){.mode-grid{grid-template-columns:1fr}.unit-grid{grid-template-columns:repeat(3,1fr)}.stats-row{gap:18px}.dict-prompt{padding:30px 22px}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="header">
+  <h1>Vocabulary <em>Trainer</em></h1>
+</div>
+
+<!-- HOME -->
+<div class="screen active" id="screen-home">
+  <div class="lbl">Select Units</div>
+  <div class="unit-grid" id="unit-grid"></div>
+  <div class="row" style="margin-bottom:24px">
+    <button class="btn btn-outline" onclick="selectAll()">Select All</button>
+    <button class="btn btn-outline" onclick="selectNone()">Clear</button>
+    <span id="sel-count" style="margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)"></span>
+  </div>
+  <div class="divider"></div>
+  <div class="lbl">Choose Mode</div>
+  <div class="mode-grid">
+    <div class="mode-card" onclick="startStudy('flashcard')">
+      <span class="mode-icon">🗂</span>
+      <div class="mode-title">Flashcards</div>
+      <div class="mode-desc">Flip cards to reveal the Oxford definition. Auto-reads each word aloud.</div>
+    </div>
+    <div class="mode-card" onclick="startStudy('dictation')">
+      <span class="mode-icon">✍️</span>
+      <div class="mode-title">Dictation</div>
+      <div class="mode-desc">Read the definition and type the word. Tests your spelling.</div>
+    </div>
+  </div>
+</div>
+
+<!-- FLASHCARDS -->
+<div class="screen" id="screen-flashcard">
+  <div class="meta">
+    <button class="btn btn-outline" onclick="goHome()">← Back</button>
+    <div class="prog-wrap">
+      <div class="prog-track"><div class="prog-fill" id="fc-prog" style="width:0%"></div></div>
+      <div class="prog-text" id="fc-lbl">0 / 0</div>
+    </div>
+    <button class="speak-btn" onclick="speakCurrent()">🔊 Say it</button>
+  </div>
+  <div class="card-scene" onclick="flipCard()">
+    <div class="card-inner" id="card-inner">
+      <div class="card-face front">
+        <div class="card-tap">Tap to reveal definition</div>
+        <div class="card-word" id="fc-word">—</div>
+        <div class="card-pos" id="fc-pos-front"></div>
+        <span class="card-badge" id="fc-badge">1/1</span>
+      </div>
+      <div class="card-face back">
+        <div class="card-tap">✓ Definition</div>
+        <div class="card-word gold" id="fc-word-back">—</div>
+        <div class="card-pos" id="fc-pos-back"></div>
+        <div class="card-def" id="fc-def">—</div>
+        <span class="card-badge" id="fc-badge-back">1/1</span>
+      </div>
+    </div>
+  </div>
+  <div class="nav">
+    <button class="btn btn-card" onclick="prevCard()">← Prev</button>
+    <button class="btn btn-gold" onclick="nextCard()">Next →</button>
+  </div>
+  <div class="options">
+    <div class="options-title">Settings</div>
+    <label class="tog-row" onclick="toggleShuffle()">
+      <div class="tog" id="shuffle-tog"></div>Shuffle order
+    </label>
+  </div>
+</div>
+
+<!-- DICTATION -->
+<div class="screen" id="screen-dictation">
+  <div class="meta">
+    <button class="btn btn-outline" onclick="goHome()">← Back</button>
+    <div class="prog-wrap">
+      <div class="prog-track"><div class="prog-fill" id="dt-prog" style="width:0%"></div></div>
+      <div class="prog-text" id="dt-lbl">0 / 0</div>
+    </div>
+    <button class="speak-btn" onclick="speakD()">🔊 Play <kbd style="font-size:9px;border-color:rgba(124,156,255,0.3);background:rgba(124,156,255,0.08);color:var(--accent2)">Ctrl</kbd></button>
+  </div>
+  <div class="dict-prompt">
+    <div class="dict-counter" id="dt-num">1</div>
+    <div class="dict-hint" id="dt-hint">Press <kbd>Ctrl</kbd> to hear the word</div>
+  </div>
+  <div id="result-area"></div>
+  <div class="dict-input-row">
+    <input class="dict-input" id="dt-input" type="text" placeholder="Type the word..."
+      autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+    <button class="btn btn-gold" onclick="checkDict()">Check</button>
+  </div>
+  <div id="dt-action" style="text-align:center;margin-top:6px"></div>
+  <div class="options">
+    <div class="options-title">Settings</div>
+    <label class="tog-row" onclick="toggleDictShuffle()"><div class="tog" id="dt-sh-tog"></div>Shuffle order</label>
+    <label class="tog-row" onclick="toggleAutoSpeak()"><div class="tog on" id="as-tog"></div>Auto-read word aloud</label>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div class="screen" id="screen-results">
+  <div class="results-hero">
+    <div class="score-ring" id="score-ring">
+      <div class="score-pct" id="score-pct">0%</div>
+      <div class="score-lbl">Score</div>
+    </div>
+    <div class="results-title" id="res-title">Done!</div>
+    <div class="results-sub" id="res-sub">—</div>
+  </div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-n green" id="res-ok">0</div><div class="stat-l">Correct</div></div>
+    <div class="stat"><div class="stat-n red" id="res-err">0</div><div class="stat-l">Wrong</div></div>
+    <div class="stat"><div class="stat-n" id="res-tot">0</div><div class="stat-l">Total</div></div>
+  </div>
+  <div id="wrong-container"></div>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <button class="btn btn-card" onclick="retryWrong()" id="retry-btn">Retry Wrong</button>
+    <button class="btn btn-gold" onclick="goHome()">Home</button>
+  </div>
+</div>
+</div>
+<script>
+const SCENES={
+1:{name:"Scene 1",topic:"Accommodation",words:[
+{w:"flat",pos:"noun",def:"a set of rooms for living in, typically on one floor of a building"},
+{w:"apartment",pos:"noun",def:"a set of rooms for living in, usually on one floor of a large building"},
+{w:"hall of residence",pos:"noun",def:"a building at a college or university where students live"},
+{w:"house",pos:"noun",def:"a building for people to live in, usually for one family"},
+{w:"homestay",pos:"noun",def:"a form of tourism where a visitor stays in a private home"},
+{w:"host family",pos:"noun",def:"a family that accommodates a student or visitor in their home"},
+{w:"house agency",pos:"noun",def:"a business that helps people buy, sell, or rent houses"},
+{w:"real estate agency",pos:"noun",def:"a company that manages the buying and selling of property"},
+{w:"location",pos:"noun",def:"a particular place or position"},
+{w:"city centre",pos:"noun",def:"the main commercial and business district of a city"},
+{w:"central area",pos:"noun",def:"the region at or near the middle part of a city"},
+{w:"downtown",pos:"noun",def:"the central or main business district of a city"},
+{w:"suburb",pos:"noun",def:"an area where people live that is outside the centre of a city"},
+{w:"residential area",pos:"noun",def:"an area of a town mainly consisting of private houses"},
+{w:"rural area",pos:"noun",def:"land in the countryside, away from towns and cities"},
+{w:"countryside",pos:"noun",def:"land outside towns and cities, with fields, forests, and villages"},
+{w:"country",pos:"noun",def:"land outside cities and towns; rural areas"},
+{w:"layout",pos:"noun",def:"the way in which rooms in a building are arranged"},
+{w:"bedroom",pos:"noun",def:"a room used for sleeping in"},
+{w:"dining room",pos:"noun",def:"a room in which meals are eaten"},
+{w:"living room",pos:"noun",def:"a room in a house used for relaxing and entertaining"},
+{w:"kitchen",pos:"noun",def:"a room where food is prepared and cooked"},
+{w:"toilet",pos:"noun",def:"a large bowl fixed to the floor that you sit on to pass waste from the body"},
+{w:"restroom",pos:"noun",def:"a room with toilets in a public building (North American English)"},
+{w:"washroom",pos:"noun",def:"a room with toilets and washbasins, especially in a public building"},
+{w:"bathroom",pos:"noun",def:"a room containing a bath or shower, and usually a washbasin and toilet"},
+{w:"balcony",pos:"noun",def:"a platform with a railing on the outside of a building, above ground level"},
+{w:"terrace",pos:"noun",def:"a flat paved area next to a building, used for sitting or eating outdoors"},
+{w:"cloakroom",pos:"noun",def:"a small room near the entrance of a house containing a toilet and washbasin"},
+{w:"basement",pos:"noun",def:"a room or floor of a building partly or entirely below ground level"},
+{w:"suite",pos:"noun",def:"a set of rooms, especially in a hotel, used as living accommodation"},
+{w:"studio",pos:"noun",def:"a small flat with one main room serving as both bedroom and living room"},
+{w:"study",pos:"noun",def:"a room used for reading, writing, or private work"},
+{w:"corridor",pos:"noun",def:"a long, narrow passage in a building with doors leading off it"},
+{w:"landlord",pos:"noun",def:"a man who rents out property to a tenant"},
+{w:"landlady",pos:"noun",def:"a woman who rents out property to a tenant"},
+{w:"tenant",pos:"noun",def:"a person who pays rent for the use of land, a building, or a room"},
+{w:"nationality",pos:"noun",def:"the status of belonging to a particular country"},
+{w:"occupation",pos:"noun",def:"a person's job or profession"},
+{w:"passport",pos:"noun",def:"an official document issued by a government, used for international travel"},
+{w:"postcode",pos:"noun",def:"a code of letters and numbers added to an address to help sort mail"},
+{w:"present address",pos:"noun",def:"the address at which someone is currently living"},
+{w:"facility",pos:"noun",def:"a place, amenity, or piece of equipment provided for a particular purpose"},
+{w:"facilities",pos:"noun",def:"buildings, services, or pieces of equipment available for a particular purpose"},
+{w:"utility",pos:"noun",def:"a service such as gas, electricity, or water supplied to homes"},
+{w:"furniture",pos:"noun",def:"large movable objects such as tables, chairs, and beds used in a room"},
+{w:"garage",pos:"noun",def:"a building used for housing a motor vehicle or repairing vehicles"},
+{w:"yard",pos:"noun",def:"a piece of ground adjoining a building"},
+{w:"backyard",pos:"noun",def:"a yard or garden at the rear of a house"},
+{w:"front yard",pos:"noun",def:"an area of ground in front of a house"},
+{w:"curtain",pos:"noun",def:"a piece of cloth hanging at a window to keep out light or for decoration"},
+{w:"air conditioner",pos:"noun",def:"a machine that cools and controls the humidity of air in a room"},
+{w:"heating",pos:"noun",def:"equipment used to warm a building; the process of warming a place"},
+{w:"cooker",pos:"noun",def:"a large cooking appliance used for cooking food by gas or electricity"},
+{w:"fridge",pos:"noun",def:"a refrigerator (informal)"},
+{w:"refrigerator",pos:"noun",def:"an appliance in which food and drink are stored at low temperatures"},
+{w:"wash basin",pos:"noun",def:"a bowl fixed to a wall, with taps, used for washing hands and face"},
+{w:"cupboard",pos:"noun",def:"a piece of furniture or a recess with a door, used for storage"},
+{w:"cabinet",pos:"noun",def:"a piece of furniture with drawers or shelves enclosed behind doors"},
+{w:"lamp",pos:"noun",def:"an electric device that produces light"},
+{w:"street lamps",pos:"noun",def:"lights fixed on tall poles along a street to illuminate it at night"},
+{w:"bed sheet",pos:"noun",def:"a large rectangular piece of cloth used to cover a mattress or a sleeper"},
+{w:"pillow",pos:"noun",def:"a soft cushion used to support the head while sleeping"},
+{w:"pillow case",pos:"noun",def:"a fabric covering for a pillow"},
+{w:"pillow cover",pos:"noun",def:"a removable fabric cover placed over a pillow"},
+{w:"towel",pos:"noun",def:"a piece of thick absorbent cloth used for drying oneself"},
+{w:"blanket",pos:"noun",def:"a large piece of woollen or similar fabric used as a bed covering"},
+{w:"carpet",pos:"noun",def:"a floor covering made from thick woven fabric"},
+{w:"vacuum cleaner",pos:"noun",def:"an electrical appliance that cleans floors by suction"},
+{w:"cleaner",pos:"noun",def:"a person employed to clean a building or room"},
+{w:"laundry",pos:"noun",def:"clothes and linen that need to be or have recently been washed"},
+{w:"laundry machine",pos:"noun",def:"an electric machine for washing clothes automatically"},
+{w:"washer",pos:"noun",def:"a washing machine (informal)"},
+{w:"dishwasher",pos:"noun",def:"a machine for washing dishes, pots, and cutlery automatically"},
+{w:"cable",pos:"noun",def:"a set of wires enclosed in a sheath, used for transmitting electricity or signals"},
+{w:"cable TV",pos:"noun",def:"a system that delivers television programmes by cable rather than by aerial"},
+{w:"satellite TV",pos:"noun",def:"television broadcast by satellite, received via a dish aerial"},
+{w:"rent",pos:"noun",def:"a tenant's regular payment to a landlord for the use of property"},
+{w:"deposit",pos:"noun",def:"a sum of money paid as a first instalment or as security"},
+{w:"cash",pos:"noun",def:"money in coins or notes"},
+{w:"cheque",pos:"noun",def:"a written order to a bank to pay a stated sum from the writer's account"},
+{w:"contract",pos:"noun",def:"a written or spoken agreement that is intended to be enforceable by law"},
+{w:"lease",pos:"noun",def:"a contract by which one party conveys property to another for a specified time"},
+{w:"water bill",pos:"noun",def:"a statement of the amount owed for water supplied to a property"},
+{w:"electricity bill",pos:"noun",def:"a statement of the amount owed for electricity used in a property"},
+{w:"gas bill",pos:"noun",def:"a statement of the amount owed for gas supplied to a property"},
+{w:"petrol bill",pos:"noun",def:"a statement of charges for fuel purchased"},
+{w:"phone bill",pos:"noun",def:"a statement of the amount charged for telephone calls and services"},
+{w:"minimum let",pos:"noun",def:"the shortest period of time for which a property may be rented"},
+{w:"upper limit",pos:"noun",def:"the highest permitted level or amount"},
+{w:"pets",pos:"noun",def:"animals kept in a home for companionship or pleasure"},
+{w:"special diet",pos:"noun",def:"a restricted or particular way of eating, for health or other reasons"},
+{w:"dietary requirement",pos:"noun",def:"a specific need regarding what a person can or cannot eat"},
+{w:"vegetarian",pos:"noun",def:"a person who does not eat meat or fish"},
+{w:"organic food",pos:"noun",def:"food produced using natural methods without synthetic chemicals"},
+{w:"organic farming",pos:"noun",def:"a method of farming that avoids the use of artificial fertilisers or pesticides"},
+{w:"seafood",pos:"noun",def:"shellfish and sea fish as food"},
+{w:"allergy",pos:"noun",def:"a damaging immune response of the body to a substance"},
+{w:"allergic",pos:"adj",def:"having an allergy to a particular substance"},
+{w:"guest",pos:"noun",def:"a person who is staying in someone's home or at a hotel"},
+{w:"elementary",pos:"adj",def:"of or relating to the most basic level"},
+{w:"intermediate",pos:"adj",def:"coming between two things in complexity or level"},
+{w:"advanced",pos:"adj",def:"at a high or expert level; far on in progress"}
+]},
+2:{name:"Scene 2",topic:"Travel",words:[
+{w:"tour",pos:"noun",def:"a journey for pleasure visiting several places"},
+{w:"self-drive tour",pos:"noun",def:"a holiday in which you drive yourself, rather than using a tour guide"},
+{w:"guided tour",pos:"noun",def:"a tour of a place conducted by a guide who provides commentary"},
+{w:"guidebook",pos:"noun",def:"a book of information about a place for visitors or tourists"},
+{w:"handbook",pos:"noun",def:"a short book giving information or instructions"},
+{w:"schedule",pos:"noun",def:"a plan listing activities and the times at which they are to occur"},
+{w:"timetable",pos:"noun",def:"a plan of times at which events or journeys are planned to take place"},
+{w:"departure",pos:"noun",def:"the action of leaving, especially at the start of a journey"},
+{w:"departure date",pos:"noun",def:"the date on which someone sets off on a journey"},
+{w:"departure gate",pos:"noun",def:"the gate at an airport from which passengers board their flight"},
+{w:"arrival",pos:"noun",def:"the action or process of reaching a destination"},
+{w:"reservation",pos:"noun",def:"an arrangement whereby something is booked or set aside for a person"},
+{w:"commentary",pos:"noun",def:"a spoken account of an event as it happens"},
+{w:"live commentary",pos:"noun",def:"a spoken account of an event broadcast as it takes place"},
+{w:"audio commentary",pos:"noun",def:"a recorded narration that accompanies a tour or film"},
+{w:"buffet",pos:"noun",def:"a meal at which guests serve themselves from a variety of dishes on a table"},
+{w:"4-course dinner",pos:"noun",def:"a formal dinner consisting of four separate dishes served in sequence"},
+{w:"course",pos:"noun",def:"each successive part of a meal"},
+{w:"dish",pos:"noun",def:"a particular variety of food prepared in a particular way"},
+{w:"package",pos:"noun",def:"a set of travel and accommodation arranged and sold together at a fixed price"},
+{w:"tram",pos:"noun",def:"a passenger vehicle powered by electricity that runs on rails laid in a road"},
+{w:"electric tram",pos:"noun",def:"a tram driven by electricity, typically from overhead cables"},
+{w:"train",pos:"noun",def:"a series of railway carriages moved by a locomotive"},
+{w:"train fare",pos:"noun",def:"the price charged for a journey by train"},
+{w:"train service",pos:"noun",def:"the operation of trains on a particular route"},
+{w:"train station",pos:"noun",def:"a place where trains stop so that passengers can get on and off"},
+{w:"minibus",pos:"noun",def:"a small bus, typically seating between ten and fifteen people"},
+{w:"coach",pos:"noun",def:"a comfortable long-distance bus"},
+{w:"shuttle",pos:"noun",def:"a vehicle that travels regularly between two places"},
+{w:"airport shuttle",pos:"noun",def:"a bus or van service that transports people to and from an airport"},
+{w:"sightseeing bus",pos:"noun",def:"a bus that takes tourists to places of interest"},
+{w:"sightseeing tour",pos:"noun",def:"a visit to interesting places, especially as a tourist"},
+{w:"subway",pos:"noun",def:"an underground railway system in a city (North American English)"},
+{w:"underground",pos:"noun",def:"an underground urban railway (British English)"},
+{w:"tube",pos:"noun",def:"the underground railway in London (informal)"},
+{w:"metro",pos:"noun",def:"an underground railway system serving a city"},
+{w:"ferry",pos:"noun",def:"a boat or ship for conveying passengers and goods across water"},
+{w:"boat",pos:"noun",def:"a small vessel for travelling over water"},
+{w:"fishing boat",pos:"noun",def:"a boat used for catching fish"},
+{w:"sailing boat",pos:"noun",def:"a boat propelled by means of sails"},
+{w:"helicopter",pos:"noun",def:"an aircraft which derives lift from blades that rotate above it"},
+{w:"hotel",pos:"noun",def:"an establishment providing accommodation, meals, and other services"},
+{w:"youth hostel",pos:"noun",def:"a place providing cheap accommodation for young travellers"},
+{w:"lodge",pos:"noun",def:"a small house at the gate of an estate; a country hotel"},
+{w:"lodging",pos:"noun",def:"temporary accommodation; a rented room in someone else's house"},
+{w:"tent",pos:"noun",def:"a portable shelter made of fabric, supported by poles and ropes"},
+{w:"campsite",pos:"noun",def:"a place where tents may be pitched or caravans parked"},
+{w:"forest campsite",pos:"noun",def:"a designated camping area situated in a forest"},
+{w:"single room",pos:"noun",def:"a hotel room designed for one person, usually with one bed"},
+{w:"twin room",pos:"noun",def:"a hotel room with two single beds"},
+{w:"suite",pos:"noun",def:"a set of rooms in a hotel occupied together as a unit"},
+{w:"king-sized bed",pos:"noun",def:"the largest standard bed size, wider than a queen-sized bed"},
+{w:"queen-sized bed",pos:"noun",def:"a large bed smaller than a king-sized but larger than a double"},
+{w:"tourist attraction",pos:"noun",def:"a place of interest visited by many tourists"},
+{w:"tourist site",pos:"noun",def:"a location regularly visited by tourists"},
+{w:"tourist spot",pos:"noun",def:"a popular place for tourists to visit"},
+{w:"attraction",pos:"noun",def:"a place of interest or entertainment to which people are drawn"},
+{w:"destination",pos:"noun",def:"the place to which someone is travelling or being sent"},
+{w:"castle",pos:"noun",def:"a large building with thick stone walls, towers, and battlements"},
+{w:"palace",pos:"noun",def:"a large, impressive residence, especially of a ruler or bishop"},
+{w:"temple",pos:"noun",def:"a building devoted to the worship of a god or gods"},
+{w:"village",pos:"noun",def:"a small settlement in a rural area, smaller than a town"},
+{w:"church",pos:"noun",def:"a building used for public Christian worship"},
+{w:"cathedral",pos:"noun",def:"the principal church of a diocese, containing the bishop's seat"},
+{w:"beach",pos:"noun",def:"a pebbly or sandy shore at the edge of the sea"},
+{w:"coast",pos:"noun",def:"the land near or adjoining the sea"},
+{w:"coastline",pos:"noun",def:"the outline of a coast, especially as seen from the sea or on a map"},
+{w:"coastal",pos:"adj",def:"of or near a coast"},
+{w:"waterfall",pos:"noun",def:"a cascade of water falling from a height"},
+{w:"cave",pos:"noun",def:"a large natural underground space in rock or earth"},
+{w:"wetland",pos:"noun",def:"land consisting of marshes or swamps; saturated land"},
+{w:"marsh",pos:"noun",def:"an area of low-lying land that is flooded in wet seasons"},
+{w:"swamp",pos:"noun",def:"a piece of wet, spongy ground; a marsh"},
+{w:"hot spring",pos:"noun",def:"a spring of naturally hot water, usually heated by volcanic activity"},
+{w:"rainforest",pos:"noun",def:"a dense tropical forest in an area of high rainfall"},
+{w:"nature reserve",pos:"noun",def:"a protected area of land or water important for wildlife or geology"},
+{w:"amusement park",pos:"noun",def:"a large outdoor area with fairground rides and entertainment"},
+{w:"entertainment",pos:"noun",def:"the action of providing amusement or enjoyment"},
+{w:"recreation",pos:"noun",def:"activity done for enjoyment when one is not working"},
+{w:"museum",pos:"noun",def:"a building in which objects of historical, scientific, or artistic interest are kept"},
+{w:"art museum",pos:"noun",def:"a museum housing a collection of artworks"},
+{w:"science museum",pos:"noun",def:"a museum with exhibits about science and technology"},
+{w:"space museum",pos:"noun",def:"a museum dedicated to space exploration and astronomy"},
+{w:"transport museum",pos:"noun",def:"a museum displaying vehicles and the history of transport"},
+{w:"art gallery",pos:"noun",def:"a room or building where works of art are exhibited"},
+{w:"aquarium",pos:"noun",def:"a glass tank in which fish and other aquatic animals are kept"},
+{w:"aquatic",pos:"adj",def:"relating to water; living or found in or near water"},
+{w:"shopping mall",pos:"noun",def:"a large enclosed shopping centre"},
+{w:"shopping centre",pos:"noun",def:"a large building or group of buildings containing various shops"},
+{w:"plaza",pos:"noun",def:"a public square or marketplace; a shopping complex"},
+{w:"department stores",pos:"noun",def:"large shops divided into departments selling different types of goods"},
+{w:"mountain climbing",pos:"noun",def:"the sport or activity of climbing mountains"},
+{w:"climbing wall",pos:"noun",def:"a wall fitted with handholds for practising rock climbing"},
+{w:"picnic",pos:"noun",def:"an outing to eat a packed meal outdoors"},
+{w:"picnic blanket",pos:"noun",def:"a blanket laid on the ground to sit on during a picnic"},
+{w:"hiking",pos:"noun",def:"the activity of going for long walks, especially in the countryside"},
+{w:"sleeping bag",pos:"noun",def:"a warm lined bag to sleep in, used when camping"},
+{w:"compass",pos:"noun",def:"an instrument showing the cardinal directions, used for navigation"},
+{w:"helmet",pos:"noun",def:"a hard or padded protective hat"},
+{w:"torch",pos:"noun",def:"a portable battery-powered electric lamp (British English)"},
+{w:"flashlight",pos:"noun",def:"a handheld battery-powered electric light (North American English)"},
+{w:"boots",pos:"noun",def:"sturdy footwear covering the foot and ankle or leg"},
+{w:"climbing boots",pos:"noun",def:"boots with rigid soles designed for climbing rock or ice"},
+{w:"walking boots",pos:"noun",def:"sturdy boots designed for walking long distances on rough terrain"},
+{w:"hiking boots",pos:"noun",def:"strong ankle-supporting boots worn for hiking"},
+{w:"rain boots",pos:"noun",def:"waterproof boots worn in wet conditions"},
+{w:"trousers",pos:"noun",def:"an outer garment covering the lower body from the waist to the ankles"},
+{w:"pants",pos:"noun",def:"trousers (North American English); underpants (British English)"},
+{w:"backpack",pos:"noun",def:"a rucksack; a bag carried on one's back by means of shoulder straps"},
+{w:"backpacker",pos:"noun",def:"a person who travels cheaply, usually staying in hostels"}
+]},
+3:{name:"Scene 3",topic:"Banking",words:[
+{w:"bank account",pos:"noun",def:"an arrangement with a bank to keep and manage a person's money"},
+{w:"current account",pos:"noun",def:"a bank account from which money can be withdrawn at any time by cheque"},
+{w:"deposit account",pos:"noun",def:"a bank account that earns interest on money deposited"},
+{w:"savings account",pos:"noun",def:"a bank account that earns interest, intended for saving money"},
+{w:"cash account",pos:"noun",def:"an account in which transactions are settled in cash"},
+{w:"joint account",pos:"noun",def:"a bank account in the names of two or more people"},
+{w:"separate account",pos:"noun",def:"a bank account belonging to one individual alone"},
+{w:"register",pos:"verb",def:"to enter one's name or details in an official list"},
+{w:"registration",pos:"noun",def:"the action or process of registering on an official list"},
+{w:"sign up",pos:"phrasal verb",def:"to commit oneself to a course or activity; to register"},
+{w:"deposit",pos:"verb",def:"to place money in a bank account"},
+{w:"withdraw",pos:"verb",def:"to take money out of a bank account"},
+{w:"withdrawal",pos:"noun",def:"the action of taking money out of a bank account"},
+{w:"overdraft",pos:"noun",def:"a deficit in a bank account when expenditure exceeds the available balance"},
+{w:"transfer",pos:"verb",def:"to move money from one bank account to another"},
+{w:"transfer fee",pos:"noun",def:"a charge levied for transferring money between accounts"},
+{w:"transaction",pos:"noun",def:"an instance of buying or selling; a business deal"},
+{w:"credit card",pos:"noun",def:"a small plastic card allowing the holder to buy goods on credit"},
+{w:"annual fee",pos:"noun",def:"a fee charged once a year for a service such as a credit card"},
+{w:"customer",pos:"noun",def:"a person who buys goods or services from a business"},
+{w:"customer service",pos:"noun",def:"the assistance and advice provided by a company to the people who buy its products"},
+{w:"customer base",pos:"noun",def:"the group of customers who regularly buy from a business"},
+{w:"bank statement",pos:"noun",def:"a printed record of all the transactions in a bank account over a period"},
+{w:"daily bank statement",pos:"noun",def:"a bank statement showing transactions for one day"},
+{w:"weekly bank statement",pos:"noun",def:"a bank statement showing transactions for one week"},
+{w:"monthly bank statement",pos:"noun",def:"a bank statement showing transactions for one calendar month"},
+{w:"quarterly bank statement",pos:"noun",def:"a bank statement covering a period of three months"},
+{w:"seasonal bank statement",pos:"noun",def:"a bank statement covering one season"},
+{w:"annual bank statement",pos:"noun",def:"a bank statement covering an entire year"},
+{w:"yearly bank statement",pos:"noun",def:"a bank statement produced once every year"},
+{w:"interest",pos:"noun",def:"money paid at a regular rate for borrowing or holding money in a bank"},
+{w:"annual interest rate",pos:"noun",def:"the percentage of interest calculated over one year"},
+{w:"management",pos:"noun",def:"the process of dealing with or controlling people or things"},
+{w:"money management",pos:"noun",def:"the process of budgeting and handling one's personal finances"},
+{w:"wealth management",pos:"noun",def:"professional management of a person's investments and financial affairs"},
+{w:"investment",pos:"noun",def:"the action of putting money into financial schemes to make a profit"},
+{w:"low-risk investment",pos:"noun",def:"an investment that carries a low probability of financial loss"},
+{w:"loan",pos:"noun",def:"a sum of money that is borrowed and expected to be repaid with interest"},
+{w:"student loan",pos:"noun",def:"a loan advanced to a student to help pay for their education"},
+{w:"low-interest loan",pos:"noun",def:"a loan that charges a lower than average rate of interest"},
+{w:"online banking",pos:"noun",def:"the management of a bank account via the internet"},
+{w:"internet banking",pos:"noun",def:"banking conducted electronically over the internet"},
+{w:"E-banking",pos:"noun",def:"electronic banking; the management of finances via digital platforms"},
+{w:"budget",pos:"noun",def:"an estimate of income and expenditure for a set period"},
+{w:"financial situation",pos:"noun",def:"the state of a person's or organisation's finances"},
+{w:"pension",pos:"noun",def:"a regular payment made by a government or company to a retired person"},
+{w:"insurance",pos:"noun",def:"a practice of paying premiums to a company as security against future losses"},
+{w:"life insurance",pos:"noun",def:"insurance that pays a sum to a beneficiary on the death of the insured"},
+{w:"health insurance",pos:"noun",def:"insurance that pays for the cost of medical treatment"},
+{w:"home insurance",pos:"noun",def:"insurance against damage to or loss from a home and its contents"},
+{w:"medical insurance",pos:"noun",def:"insurance providing coverage for medical and surgical expenses"},
+{w:"property insurance",pos:"noun",def:"insurance covering loss or damage to property"},
+{w:"labor insurance",pos:"noun",def:"insurance protecting workers against accidents or occupational illness"},
+{w:"pension insurance",pos:"noun",def:"insurance that provides retirement income upon reaching a specified age"},
+{w:"car insurance",pos:"noun",def:"insurance providing financial protection against motor vehicle damage"},
+{w:"insurer",pos:"noun",def:"a company or person that provides insurance"},
+{w:"policy",pos:"noun",def:"a contract of insurance; a document stating its terms"},
+{w:"policies",pos:"noun",def:"contracts of insurance (plural of policy)"},
+{w:"quote",pos:"noun",def:"a statement of the estimated cost of a policy or service"},
+{w:"renew",pos:"verb",def:"to extend the period of validity of a licence, policy, or subscription"},
+{w:"renewal",pos:"noun",def:"the action of extending the period of validity of something"},
+{w:"personal items",pos:"noun",def:"objects belonging to a particular person, such as clothing and valuables"},
+{w:"goods",pos:"noun",def:"merchandise or possessions; things to be bought and sold"},
+{w:"stuff",pos:"noun",def:"things; personal belongings or equipment (informal)"},
+{w:"claim",pos:"noun",def:"a request or demand for payment under an insurance policy"},
+{w:"receipt",pos:"noun",def:"a written acknowledgement that something has been received"},
+{w:"invoice",pos:"noun",def:"a list of goods sent or services provided, with a statement of the sum due"},
+{w:"expiration",pos:"noun",def:"the ending of the period for which something is valid"},
+{w:"expire",pos:"verb",def:"to come to the end of its validity period"},
+{w:"expiry date",pos:"noun",def:"the date after which something is no longer valid or safe to use"},
+{w:"identity check",pos:"noun",def:"a process to verify a person's identity"},
+{w:"shipping agent",pos:"noun",def:"a company that organises the transport of goods on behalf of clients"},
+{w:"shipping service",pos:"noun",def:"a service that transports goods or parcels to a specified destination"},
+{w:"delivery",pos:"noun",def:"the action of delivering letters, parcels, or goods"},
+{w:"replacement value",pos:"noun",def:"the cost of replacing an item with a new equivalent"},
+{w:"compensation",pos:"noun",def:"something given to make up for loss or injury; recompense"}
+]},
+4:{name:"Scene 4",topic:"Employment",words:[
+{w:"vacancy",pos:"noun",def:"an unoccupied position or job that is available"},
+{w:"position",pos:"noun",def:"a paid job in an organisation"},
+{w:"volunteer",pos:"noun",def:"a person who freely offers to do something without payment"},
+{w:"assistant",pos:"noun",def:"a person who helps in particular work"},
+{w:"service manager",pos:"noun",def:"a person responsible for managing a service department"},
+{w:"waiter",pos:"noun",def:"a man who serves food and drink in a restaurant"},
+{w:"waitress",pos:"noun",def:"a woman who serves food and drink in a restaurant"},
+{w:"accountant",pos:"noun",def:"a person whose job is to keep or inspect financial accounts"},
+{w:"bank clerk",pos:"noun",def:"a person who works in a bank, dealing with customers"},
+{w:"cleaner",pos:"noun",def:"a person employed to clean offices or other buildings"},
+{w:"librarian",pos:"noun",def:"a person who works in and runs a library"},
+{w:"receptionist",pos:"noun",def:"a person who greets and deals with clients and visitors in an office"},
+{w:"consultant",pos:"noun",def:"a person who provides expert advice professionally"},
+{w:"counsellor",pos:"noun",def:"a person trained to give guidance on personal or psychological problems"},
+{w:"advisor",pos:"noun",def:"a person who gives advice in a particular field"},
+{w:"adviser",pos:"noun",def:"a person who advises; variant spelling of advisor"},
+{w:"editor",pos:"noun",def:"a person who is in charge of preparing text for publication"},
+{w:"reporter",pos:"noun",def:"a person who reports news for a newspaper, magazine, or broadcast"},
+{w:"lawyer",pos:"noun",def:"a person who practises or studies law"},
+{w:"secretary",pos:"noun",def:"a person who works in an office, dealing with correspondence and appointments"},
+{w:"engineer",pos:"noun",def:"a person who designs, builds, or maintains engines or machines"},
+{w:"technician",pos:"noun",def:"a person employed to look after technical equipment"},
+{w:"dentist",pos:"noun",def:"a person qualified to treat diseases and conditions affecting the teeth"},
+{w:"advertisement",pos:"noun",def:"a notice or announcement in a public medium, promoting a product or vacancy"},
+{w:"reference",pos:"noun",def:"a written statement about a person's character or abilities"},
+{w:"notice board",pos:"noun",def:"a board on which notices may be displayed"},
+{w:"newspaper",pos:"noun",def:"a printed publication containing news and articles"},
+{w:"radio",pos:"noun",def:"the transmission and reception of programmes by electromagnetic waves"},
+{w:"recommendation",pos:"noun",def:"a suggestion that someone or something would be good or suitable"},
+{w:"leaflet",pos:"noun",def:"a printed sheet of paper containing information, used for advertising"},
+{w:"brochure",pos:"noun",def:"a small booklet or pamphlet containing pictures and information"},
+{w:"career fair",pos:"noun",def:"an event at which employers recruit new employees or students"},
+{w:"applicant",pos:"noun",def:"a person who makes a formal application for a job or course"},
+{w:"resume",pos:"noun",def:"a document listing qualifications and work experience (North American English)"},
+{w:"curriculum vitae",pos:"noun",def:"a brief account of one's education and professional history (British English)"},
+{w:"personal statement",pos:"noun",def:"a written description of oneself, submitted as part of an application"},
+{w:"application form",pos:"noun",def:"a form to be filled in when applying for a job, course, or benefit"},
+{w:"certificate",pos:"noun",def:"an official document attesting to a fact or a qualification"},
+{w:"diploma",pos:"noun",def:"a certificate awarded by an educational establishment on completing a course"},
+{w:"interview",pos:"noun",def:"a formal meeting to assess a candidate for a job or a course of study"},
+{w:"permit",pos:"noun",def:"an official document giving authority to do something"},
+{w:"visa",pos:"noun",def:"an endorsement on a passport authorising entry into a country"},
+{w:"contract",pos:"noun",def:"a written or spoken agreement that is legally binding"},
+{w:"requirement",pos:"noun",def:"a thing that is compulsory; a necessary condition"},
+{w:"registered student",pos:"noun",def:"a student who has officially enrolled at an institution"},
+{w:"temporary staff",pos:"noun",def:"employees hired for a limited period"},
+{w:"uniform",pos:"noun",def:"a distinctive set of clothes worn by members of the same organisation"},
+{w:"experience",pos:"noun",def:"practical contact with events; the knowledge gained from doing something"},
+{w:"qualification",pos:"noun",def:"a pass of an examination or an official completion of a course"},
+{w:"salary",pos:"noun",def:"a fixed regular payment for employment, typically paid monthly"},
+{w:"shift",pos:"noun",def:"a set period of work; one of the periods into which a day is divided"},
+{w:"day off",pos:"noun",def:"a day's holiday from work"},
+{w:"negotiation",pos:"noun",def:"discussion aimed at reaching an agreement"},
+{w:"capability",pos:"noun",def:"the power or ability to do something"},
+{w:"quality",pos:"noun",def:"the standard of something as measured against others"},
+{w:"creative",pos:"adj",def:"relating to or involving the imagination or original ideas"},
+{w:"flexible",pos:"adj",def:"ready and able to adapt to different circumstances"},
+{w:"motivated",pos:"adj",def:"having a strong reason to act or accomplish something"},
+{w:"organised",pos:"adj",def:"arranged neatly and systematically; efficient"},
+{w:"efficient",pos:"adj",def:"achieving maximum productivity with minimum effort or expense"},
+{w:"critical",pos:"adj",def:"expressing adverse or disapproving judgement"},
+{w:"responsible",pos:"adj",def:"having a duty to deal with something; morally accountable"}
+]},
+5:{name:"Scene 5",topic:"Shopping & Leisure",words:[
+{w:"shop",pos:"noun",def:"a building or part of a building where goods are sold"},
+{w:"shopping",pos:"noun",def:"the action of going to shops to buy things"},
+{w:"workshop",pos:"noun",def:"a meeting at which a group engages in discussion and practical work"},
+{w:"bookshop",pos:"noun",def:"a shop that sells books"},
+{w:"item",pos:"noun",def:"an individual article or unit, especially one that is part of a list"},
+{w:"picnic",pos:"noun",def:"an outing in which a meal is eaten outdoors"},
+{w:"barbecue",pos:"noun",def:"a meal or gathering at which food is cooked over charcoal outdoors"},
+{w:"smell",pos:"noun",def:"the faculty of perceiving odours; a quality perceived by the nose"},
+{w:"cup",pos:"noun",def:"a small bowl-shaped container with a handle, used for drinking"},
+{w:"dish",pos:"noun",def:"a type of food prepared in a particular way"},
+{w:"spoon",pos:"noun",def:"a utensil with a rounded bowl on a long handle, used for stirring or eating"},
+{w:"cook",pos:"noun",def:"a person who prepares food as a job or skill"},
+{w:"meal",pos:"noun",def:"any of the regular daily occasions when food is eaten"},
+{w:"meat",pos:"noun",def:"the flesh of an animal used as food"},
+{w:"cheese",pos:"noun",def:"a food made from the pressed curds of milk"},
+{w:"sugar",pos:"noun",def:"a sweet crystalline substance obtained from plants, used to sweeten food"},
+{w:"flour",pos:"noun",def:"a powder made by grinding grain, used for making bread, pastry, and cakes"},
+{w:"salt",pos:"noun",def:"a white crystalline mineral, sodium chloride, used for seasoning food"},
+{w:"fruit",pos:"noun",def:"the sweet and fleshy product of a tree or other plant"},
+{w:"vegetable",pos:"noun",def:"a plant or part of a plant used as food, typically savoury"},
+{w:"mineral",pos:"noun",def:"a naturally occurring inorganic substance; an element needed by the body"},
+{w:"protein",pos:"noun",def:"a nutrient essential for the growth and repair of body tissue"},
+{w:"pizza",pos:"noun",def:"a flat round base of dough baked with tomato sauce and toppings"},
+{w:"starter",pos:"noun",def:"the first course of a meal"},
+{w:"dessert",pos:"noun",def:"the sweet course eaten at the end of a meal"},
+{w:"sandwich",pos:"noun",def:"an item of food consisting of two pieces of bread with a filling"},
+{w:"salad",pos:"noun",def:"a cold dish of raw vegetables, usually with dressing"},
+{w:"snack",pos:"noun",def:"a small amount of food eaten between meals"},
+{w:"milk",pos:"noun",def:"a white liquid produced by female mammals as food for their young"},
+{w:"water",pos:"noun",def:"a colourless liquid which is essential for life"},
+{w:"juice",pos:"noun",def:"the liquid obtained by squeezing or pressing fruit or vegetables"},
+{w:"coffee",pos:"noun",def:"a hot drink made from the roasted and ground seeds of a tropical plant"},
+{w:"dairy",pos:"adj",def:"containing or made from milk"},
+{w:"seafood",pos:"noun",def:"edible saltwater fish or shellfish"},
+{w:"catering",pos:"noun",def:"the business of providing food and drink at social events"},
+{w:"buffet",pos:"noun",def:"a meal at which guests serve themselves from a table of food"},
+{w:"refreshment",pos:"noun",def:"a light snack or drink provided at an event"},
+{w:"dress code",pos:"noun",def:"a set of rules specifying what to wear in a particular place"},
+{w:"cloth",pos:"noun",def:"woven or felted fabric made from wool, cotton, or other fibre"},
+{w:"clothing",pos:"noun",def:"garments collectively; clothes"},
+{w:"sweater",pos:"noun",def:"a knitted garment worn on the upper body"},
+{w:"trousers",pos:"noun",def:"an outer garment covering the body from the waist to the ankles"},
+{w:"dress",pos:"noun",def:"a one-piece garment worn by women or girls covering the body to the legs"},
+{w:"wear",pos:"verb",def:"to be dressed in; to have something on one's body as clothing"},
+{w:"uniform",pos:"noun",def:"a distinctive set of clothes worn by members of the same group"},
+{w:"suit",pos:"noun",def:"a set of clothes made of the same fabric, typically a jacket and trousers"},
+{w:"jacket",pos:"noun",def:"an outer garment extending to the waist or hips"},
+{w:"shoe",pos:"noun",def:"a covering for the foot, having a sturdy sole"},
+{w:"jeans",pos:"noun",def:"casual trousers made from denim"},
+{w:"decoration",pos:"noun",def:"the process of decorating something; a thing that adds beauty"},
+{w:"festival",pos:"noun",def:"a day or period of celebration, often with cultural or religious significance"},
+{w:"guest",pos:"noun",def:"a person invited to participate in an event or stay at a home"},
+{w:"non-smoking",pos:"adj",def:"denoting a place where smoking is forbidden"},
+{w:"leisure",pos:"noun",def:"use of free time for enjoyment; time away from work"},
+{w:"entertainment",pos:"noun",def:"the action of providing amusement or enjoyment for others"},
+{w:"recreation",pos:"noun",def:"activity done for enjoyment during time off work"},
+{w:"amusement",pos:"noun",def:"the state of finding something funny; entertainment"},
+{w:"indoor",pos:"adj",def:"situated or used inside a building"},
+{w:"outdoor",pos:"adj",def:"done, situated, or used outside"},
+{w:"concert",pos:"noun",def:"a musical performance given in public"},
+{w:"theatre",pos:"noun",def:"a building where plays and other performances are given"},
+{w:"gym",pos:"noun",def:"a room or club with equipment for physical exercise"},
+{w:"stadium",pos:"noun",def:"an athletic or sports ground surrounded by seats for spectators"},
+{w:"training",pos:"noun",def:"the action of teaching or learning a skill; physical exercise"},
+{w:"club",pos:"noun",def:"an organisation for people with a common interest; a place for social activities"},
+{w:"activity",pos:"noun",def:"a thing that a person or group does or has done"},
+{w:"muscle",pos:"noun",def:"a body tissue that can contract to produce movement"},
+{w:"yoga",pos:"noun",def:"a Hindu discipline involving physical exercises and meditation"},
+{w:"skating",pos:"noun",def:"moving on ice skates or roller skates as a sport or pastime"},
+{w:"golf",pos:"noun",def:"a game played by hitting a ball into holes with clubs"},
+{w:"badminton",pos:"noun",def:"a game played with rackets and a shuttlecock over a high net"},
+{w:"tennis",pos:"noun",def:"a game played with rackets hitting a ball over a net on a court"},
+{w:"weight",pos:"noun",def:"a block or disc of heavy material used in weightlifting"},
+{w:"cycling",pos:"noun",def:"the sport or activity of riding a bicycle"},
+{w:"dancing",pos:"noun",def:"moving rhythmically to music as a form of expression or social activity"},
+{w:"diving",pos:"noun",def:"the sport of plunging into water head first; exploring underwater"},
+{w:"membership",pos:"noun",def:"the state of being a member of a group, club, or organisation"},
+{w:"instructor",pos:"noun",def:"a person who teaches a subject or skill"},
+{w:"medicine",pos:"noun",def:"a substance used to treat illness; the science of treatment of illness"},
+{w:"antibiotic",pos:"noun",def:"a medicine that kills or inhibits the growth of bacteria"},
+{w:"vitamin",pos:"noun",def:"any of a group of organic compounds essential for nutrition"},
+{w:"cream",pos:"noun",def:"a thick liquid applied to the skin as a cosmetic or medical treatment"},
+{w:"herb",pos:"noun",def:"any plant used for flavouring, food, medicine, or perfume"},
+{w:"painkiller",pos:"noun",def:"a drug or medicine for relieving pain"},
+{w:"fever",pos:"noun",def:"an abnormally high body temperature, usually caused by infection"},
+{w:"stomachache",pos:"noun",def:"a pain or cramp in the stomach or abdomen"},
+{w:"allergy",pos:"noun",def:"a damaging immune response to a substance that is normally harmless"},
+{w:"surgery",pos:"noun",def:"medical treatment in which a person's body is cut open"},
+{w:"clinic",pos:"noun",def:"a place where outpatient medical treatment or advice is given"},
+{w:"blood",pos:"noun",def:"the red liquid circulating in the arteries and veins of animals"},
+{w:"appointment",pos:"noun",def:"an arrangement to meet someone at a particular time and place"},
+{w:"neck",pos:"noun",def:"the part of the body connecting the head to the shoulders"},
+{w:"back",pos:"noun",def:"the rear surface of a person's body from the shoulders to the hips"},
+{w:"elbow",pos:"noun",def:"the joint between the forearm and the upper arm"},
+{w:"wrist",pos:"noun",def:"the joint connecting the hand with the forearm"},
+{w:"knee",pos:"noun",def:"the joint between the thigh and the lower leg"},
+{w:"ankle",pos:"noun",def:"the joint connecting the foot with the leg"},
+{w:"internal clock",pos:"noun",def:"a person's innate sense of time; the circadian rhythm"},
+{w:"treatment",pos:"noun",def:"medical care given to a patient for an illness or injury"},
+{w:"pharmacy",pos:"noun",def:"a shop where medicinal drugs are prepared and sold"},
+{w:"therapy",pos:"noun",def:"treatment intended to relieve or heal a disorder"},
+{w:"health",pos:"noun",def:"the state of being free from illness or injury"},
+{w:"relaxation",pos:"noun",def:"the state of being free from tension; a recreation"},
+{w:"mental",pos:"adj",def:"relating to the mind"},
+{w:"prevent",pos:"verb",def:"to keep something from happening or arising"}
+]},
+6:{name:"Scene 6",topic:"Campus",words:[
+{w:"admission letter",pos:"noun",def:"an official letter from a university offering a place to a student"},
+{w:"transcript",pos:"noun",def:"a written or printed version of a student's academic record"},
+{w:"document",pos:"noun",def:"a piece of written, printed, or electronic matter providing information"},
+{w:"orientation pack",pos:"noun",def:"a set of information materials given to new students at the start of term"},
+{w:"material",pos:"noun",def:"matter from which a thing is or can be made; written or printed matter"},
+{w:"journal",pos:"noun",def:"an academic publication containing articles on a particular subject"},
+{w:"graduate",pos:"noun",def:"a person who has successfully completed a degree or diploma"},
+{w:"overseas student",pos:"noun",def:"a student who comes from another country to study"},
+{w:"doctor",pos:"noun",def:"a person who holds a doctorate; a qualified medical practitioner"},
+{w:"(post)graduate student",pos:"noun",def:"a student studying for a qualification beyond a first degree"},
+{w:"master('s) degree",pos:"noun",def:"a second university degree, typically requiring one to two years' study"},
+{w:"undergraduate",pos:"noun",def:"a student studying for a first degree at university or college"},
+{w:"bachelor('s) degree",pos:"noun",def:"a first degree taken at university, typically lasting three or four years"},
+{w:"senior high school",pos:"noun",def:"the final stage of secondary education for students aged around 15–18"},
+{w:"junior high school",pos:"noun",def:"an intermediate school between primary and senior high school"},
+{w:"elementary school",pos:"noun",def:"a school for children in the first years of formal education"},
+{w:"nursery",pos:"noun",def:"a place where young children are cared for and educated during the day"},
+{w:"president",pos:"noun",def:"the head of a university, college, or other institution"},
+{w:"director",pos:"noun",def:"a person who is in charge of an activity, department, or organisation"},
+{w:"staff",pos:"noun",def:"the people employed by an organisation or institution"},
+{w:"faculty and staff",pos:"noun",def:"the teaching and non-teaching employees of an educational institution"},
+{w:"tutor",pos:"noun",def:"a teacher who gives individual or small-group instruction"},
+{w:"advisor",pos:"noun",def:"a teacher or official who guides a student in academic matters"},
+{w:"supervisor",pos:"noun",def:"a person who guides a student's research or professional work"},
+{w:"open day",pos:"noun",def:"a day on which an institution is open to the public for visits"},
+{w:"campus tour",pos:"noun",def:"a guided walk around the buildings and grounds of a university or school"},
+{w:"staff room",pos:"noun",def:"a common room in a school or college for use by teachers"},
+{w:"teaching building",pos:"noun",def:"a building containing lecture halls and classrooms"},
+{w:"auditorium",pos:"noun",def:"a large room or hall for public performances or talks"},
+{w:"lecture room",pos:"noun",def:"a large room with tiered seating for academic lectures"},
+{w:"cafeteria",pos:"noun",def:"a self-service restaurant, often in a school, college, or workplace"},
+{w:"medical center",pos:"noun",def:"a facility providing health services on a campus"},
+{w:"counseling center",pos:"noun",def:"a place offering personal and psychological support for students"},
+{w:"self-access center",pos:"noun",def:"a place where students can study independently using available resources"},
+{w:"student union",pos:"noun",def:"an organisation or building representing the interests of students"},
+{w:"registration",pos:"noun",def:"the action or process of registering; official enrolment"},
+{w:"enrollment",pos:"noun",def:"the action of enrolling or being enrolled at an institution"},
+{w:"tuition (fees)",pos:"noun",def:"the money charged by a school or university for teaching"},
+{w:"scholarship",pos:"noun",def:"a grant or payment to support a student's education"},
+{w:"grant",pos:"noun",def:"a sum of money given by a government or organisation for a purpose"},
+{w:"financial aid",pos:"noun",def:"financial assistance given to students to help pay educational costs"},
+{w:"fund",pos:"noun",def:"a sum of money saved or made available for a particular purpose"},
+{w:"welfare",pos:"noun",def:"the health, happiness, and fortunes of a person or group"},
+{w:"board",pos:"noun",def:"the provision of regular meals in return for payment or services"}
+]},
+7:{name:"Scene 7",topic:"Courses",words:[
+{w:"curriculum",pos:"noun",def:"the subjects comprising a course of study in a school or college"},
+{w:"course",pos:"noun",def:"a series of lectures or lessons on a particular subject"},
+{w:"lecture",pos:"noun",def:"an educational talk to a large group of students"},
+{w:"tutorial",pos:"noun",def:"a small-group teaching session with a tutor"},
+{w:"seminar",pos:"noun",def:"a conference or meeting for discussion of a topic"},
+{w:"workshop",pos:"noun",def:"a session of practical work or discussion on a subject"},
+{w:"session",pos:"noun",def:"a period of time devoted to a particular activity"},
+{w:"field trip",pos:"noun",def:"a visit made by students to study something outside the classroom"},
+{w:"content",pos:"noun",def:"the material dealt with in a course, book, or document"},
+{w:"experiment",pos:"noun",def:"a scientific procedure to test a hypothesis or discover something"},
+{w:"outline",pos:"noun",def:"a general description of the main points of a subject"},
+{w:"theory",pos:"noun",def:"a set of principles explaining something; ideas as opposed to practice"},
+{w:"practice",pos:"noun",def:"the carrying out of an activity, as distinct from theory"},
+{w:"certificate",pos:"noun",def:"an official document recording that a course has been completed"},
+{w:"diploma",pos:"noun",def:"a certificate awarded on completing a course of educational study"},
+{w:"enroll",pos:"verb",def:"to officially register on a course or in an institution"},
+{w:"register",pos:"verb",def:"to record one's name officially on a list"},
+{w:"academic",pos:"adj",def:"relating to education and scholarship at a college or university"},
+{w:"part-time course",pos:"noun",def:"a course in which study hours are fewer than those of a full-time course"},
+{w:"credit",pos:"noun",def:"a unit of study counted towards a degree or qualification"},
+{w:"semester",pos:"noun",def:"a half-year term in a school or university"},
+{w:"assignment",pos:"noun",def:"a task or piece of work set for a student to complete"},
+{w:"deadline",pos:"noun",def:"the latest time or date by which something should be completed"},
+{w:"quiz",pos:"noun",def:"a short test of knowledge"},
+{w:"test",pos:"noun",def:"a procedure designed to assess a student's knowledge or ability"},
+{w:"exam",pos:"noun",def:"a formal test of knowledge in a subject"},
+{w:"mark",pos:"noun",def:"a number or letter indicating the quality of a student's work"},
+{w:"grade",pos:"noun",def:"a mark indicating the quality of a student's work or their year of study"},
+{w:"record",pos:"noun",def:"a permanent account of a student's qualifications and achievements"},
+{w:"standard",pos:"noun",def:"a level of quality or attainment"},
+{w:"assessment",pos:"noun",def:"the evaluation of a student's work or performance"},
+{w:"evaluation",pos:"noun",def:"the making of a judgement about the quality of something"},
+{w:"feedback",pos:"noun",def:"information about a performance given to improve future performance"},
+{w:"textbook",pos:"noun",def:"a book used as a standard work for study of a subject"},
+{w:"handout",pos:"noun",def:"a document given free to an audience or students"},
+{w:"attendance",pos:"noun",def:"the action or state of being present at a place or event"},
+{w:"participation",pos:"noun",def:"the action of taking part in something"},
+{w:"discussion",pos:"noun",def:"the action or process of talking about something to reach a decision"},
+{w:"stress",pos:"noun",def:"a state of mental or emotional strain; great pressure"},
+{w:"major",pos:"noun",def:"a student's main subject of specialisation at university"},
+{w:"psychology",pos:"noun",def:"the scientific study of the human mind and its functions"},
+{w:"mining",pos:"noun",def:"the process or industry of obtaining minerals from a mine"},
+{w:"physics",pos:"noun",def:"the branch of science concerned with the nature and properties of matter"},
+{w:"arts",pos:"noun",def:"the humanities and social sciences as areas of study"},
+{w:"politics",pos:"noun",def:"the study of government and political institutions"},
+{w:"philosophy",pos:"noun",def:"the study of the fundamental nature of knowledge and existence"},
+{w:"geography",pos:"noun",def:"the study of the physical features of the earth and its atmosphere"},
+{w:"history",pos:"noun",def:"the study of past events, particularly in human affairs"},
+{w:"astronomy",pos:"noun",def:"the branch of science that studies celestial objects and space"},
+{w:"media",pos:"noun",def:"the main means of mass communication, such as television and newspapers"},
+{w:"linguistics",pos:"noun",def:"the scientific study of language and its structure"},
+{w:"marketing",pos:"noun",def:"the action of promoting and selling products or services"},
+{w:"environmental",pos:"adj",def:"relating to the natural world and the impact of human activity on it"},
+{w:"chemistry",pos:"noun",def:"the branch of science concerned with the substances and their properties"},
+{w:"management",pos:"noun",def:"the process of dealing with or controlling things or people"},
+{w:"statistics",pos:"noun",def:"the practice of collecting and analysing numerical data in large quantities"},
+{w:"accounting",pos:"noun",def:"the process of keeping financial accounts"},
+{w:"biology",pos:"noun",def:"the study of living organisms"},
+{w:"computing",pos:"noun",def:"the use and study of computers"},
+{w:"literature",pos:"noun",def:"written works of artistic merit"},
+{w:"sociology",pos:"noun",def:"the study of the development and structure of human society"},
+{w:"architecture",pos:"noun",def:"the art or practice of designing and constructing buildings"},
+{w:"law",pos:"noun",def:"the system of rules which a particular country recognises; jurisprudence"},
+{w:"economics",pos:"noun",def:"the branch of knowledge concerned with the production and consumption of goods"},
+{w:"finance",pos:"noun",def:"the management of large amounts of money"},
+{w:"engineering",pos:"noun",def:"the branch of science and technology concerned with design and building"},
+{w:"banking",pos:"noun",def:"the business conducted by or with a bank"}
+]},
+8:{name:"Scene 8",topic:"Academic Writing",words:[
+{w:"assignment",pos:"noun",def:"a piece of work allocated to a student as part of a course"},
+{w:"written",pos:"adj",def:"expressed in writing; produced by writing"},
+{w:"oral",pos:"adj",def:"spoken rather than written"},
+{w:"presentation",pos:"noun",def:"a talk given to an audience, especially as part of a course"},
+{w:"slides",pos:"noun",def:"individual pages of a presentation displayed on a screen"},
+{w:"project",pos:"noun",def:"a piece of independent or group research"},
+{w:"case study",pos:"noun",def:"an analysis of a specific instance used to illustrate a principle"},
+{w:"report",pos:"noun",def:"a formal account of an investigation or the results of research"},
+{w:"review",pos:"noun",def:"a critical assessment of a book, article, or piece of work"},
+{w:"essay",pos:"noun",def:"a short piece of writing on a particular subject"},
+{w:"term paper",pos:"noun",def:"a major written assignment submitted at the end of a school term"},
+{w:"dissertation",pos:"noun",def:"a long essay written for a university degree"},
+{w:"thesis",pos:"noun",def:"a long essay or dissertation presenting research for a higher degree"},
+{w:"objective",pos:"noun",def:"a goal or aim to be achieved"},
+{w:"research method",pos:"noun",def:"a systematic approach used to collect and analyse data"},
+{w:"data",pos:"noun",def:"facts and statistics collected for reference or analysis"},
+{w:"collection",pos:"noun",def:"the action or process of collecting data, samples, or items"},
+{w:"sample",pos:"noun",def:"a small part taken as representative of a whole"},
+{w:"survey",pos:"noun",def:"a method of collecting data by asking a set of questions"},
+{w:"investigation",pos:"noun",def:"the action of investigating; a formal inquiry"},
+{w:"questionnaire",pos:"noun",def:"a set of questions designed to gather information from respondents"},
+{w:"observation",pos:"noun",def:"the action of closely watching to gather data"},
+{w:"interview",pos:"noun",def:"a structured conversation used to gather information"},
+{w:"analysis",pos:"noun",def:"detailed examination of the elements or structure of something"},
+{w:"statistical test",pos:"noun",def:"a mathematical procedure to determine the significance of data"},
+{w:"finding",pos:"noun",def:"a conclusion reached as a result of an inquiry or research"},
+{w:"topic",pos:"noun",def:"a matter dealt with in a text or discussion; a subject"},
+{w:"proposal",pos:"noun",def:"a plan or suggestion put forward for consideration"},
+{w:"format",pos:"noun",def:"the way in which something is arranged or set out"},
+{w:"catalogue",pos:"noun",def:"a complete list of items, especially those in a library or collection"},
+{w:"introduction",pos:"noun",def:"a preliminary section of a book or essay stating its purpose"},
+{w:"abstract",pos:"noun",def:"a summary of the contents of a book or research paper"},
+{w:"chapter",pos:"noun",def:"a main division of a book or thesis"},
+{w:"summary",pos:"noun",def:"a brief statement or account of the main points"},
+{w:"conclusion",pos:"noun",def:"a judgement or decision reached after consideration"},
+{w:"reference",pos:"noun",def:"a citation of a published source used in academic work"},
+{w:"bibliography",pos:"noun",def:"a list of the books referred to in a scholarly work"},
+{w:"draft",pos:"noun",def:"a preliminary version of a piece of writing"},
+{w:"submit",pos:"verb",def:"to present or hand in a piece of work for assessment"},
+{w:"librarian",pos:"noun",def:"a person who works professionally in a library"},
+{w:"database",pos:"noun",def:"a structured collection of data held in a computer"},
+{w:"publication",pos:"noun",def:"the action of making something available to the public in print"},
+{w:"journal",pos:"noun",def:"a scholarly periodical in a particular field"},
+{w:"periodical",pos:"noun",def:"a magazine or newspaper published at regular intervals"},
+{w:"issue",pos:"noun",def:"a particular edition of a regular publication"},
+{w:"magazine",pos:"noun",def:"a periodical publication with illustrated articles"},
+{w:"renew",pos:"verb",def:"to extend the loan period of a library book"},
+{w:"extension",pos:"noun",def:"additional time allowed for completing a task"},
+{w:"overdue",pos:"adj",def:"not returned or paid by the required time"},
+{w:"recall",pos:"verb",def:"to request the early return of a borrowed library book"},
+{w:"fine",pos:"noun",def:"a sum of money charged as a penalty"},
+{w:"reserved books",pos:"noun",def:"library books set aside for a particular course or user"},
+{w:"check in",pos:"phrasal verb",def:"to return a borrowed item to the library"},
+{w:"check out",pos:"phrasal verb",def:"to borrow an item from the library"}
+]},
+9:{name:"Scene 9",topic:"Culture & Society",words:[
+{w:"industry",pos:"noun",def:"economic activity concerned with the processing of raw materials and manufacture"},
+{w:"culture",pos:"noun",def:"the arts and other manifestations of human intellectual achievement"},
+{w:"agriculture",pos:"noun",def:"the science or practice of farming"},
+{w:"farming",pos:"noun",def:"the activity or business of growing crops and raising livestock"},
+{w:"irrigation",pos:"noun",def:"the supply of water to land by artificial means to assist cultivation"},
+{w:"council",pos:"noun",def:"an elected body responsible for local administration"},
+{w:"committee",pos:"noun",def:"a group of people appointed for a specific function"},
+{w:"violence",pos:"noun",def:"behaviour involving physical force intended to hurt, injure, or kill"},
+{w:"crime",pos:"noun",def:"an action that constitutes an offence and is punishable by law"},
+{w:"legal",pos:"adj",def:"of, based on, or required by law"},
+{w:"race",pos:"noun",def:"each of the major divisions of humankind, defined by physical characteristics"},
+{w:"gender",pos:"noun",def:"the state of being male, female, or another identity"},
+{w:"labor",pos:"noun",def:"work, especially physical work; the workforce of a country"},
+{w:"religion",pos:"noun",def:"belief in and worship of a superhuman controlling power"},
+{w:"custom",pos:"noun",def:"a traditional and widely accepted way of behaving in a society"},
+{w:"ancestor",pos:"noun",def:"a person from whom one is descended, further back than a grandparent"},
+{w:"civilization",pos:"noun",def:"the stage of human development with complex social organisation"},
+{w:"fossil",pos:"noun",def:"the preserved remains of a prehistoric organism"},
+{w:"bone",pos:"noun",def:"the hard tissue forming the skeleton in vertebrates"},
+{w:"antique",pos:"noun",def:"a collectable object valuable because of its age and quality"},
+{w:"pattern",pos:"noun",def:"a repeated decorative design; a regular way in which something occurs"},
+{w:"region",pos:"noun",def:"an area of land with specific characteristics or boundaries"},
+{w:"image",pos:"noun",def:"a visual representation of something; a likeness"},
+{w:"tribe",pos:"noun",def:"a social division of a traditional society sharing customs and language"},
+{w:"slave",pos:"noun",def:"a person legally owned by another and forced to obey them"},
+{w:"belief",pos:"noun",def:"an acceptance that a statement is true; trust or confidence"},
+{w:"shell",pos:"noun",def:"the hard outer covering of a mollusc, egg, or nut"},
+{w:"coin",pos:"noun",def:"a flat, typically round piece of metal used as money"},
+{w:"pottery",pos:"noun",def:"articles made from clay that is fired in a kiln"},
+{w:"origin",pos:"noun",def:"the point or place where something begins; a person's social background"},
+{w:"trade",pos:"noun",def:"the buying and selling of goods and services"},
+{w:"extinction",pos:"noun",def:"the state or process of a species ceasing to exist"},
+{w:"ruin",pos:"noun",def:"the physical remains of a building; a state of decay"},
+{w:"primitive",pos:"adj",def:"relating to an early stage in human development"},
+{w:"intact",pos:"adj",def:"not damaged or impaired; entire"},
+{w:"artist",pos:"noun",def:"a person who creates paintings, sculpture, or other works of art"},
+{w:"painting",pos:"noun",def:"the art of applying paint to a surface; a painted work of art"},
+{w:"sculpture",pos:"noun",def:"the art of making three-dimensional forms, especially by carving"},
+{w:"craft",pos:"noun",def:"an activity involving skill in making things by hand"},
+{w:"drama",pos:"noun",def:"a play for theatre, television, or radio"},
+{w:"opera",pos:"noun",def:"a dramatic work in which singing and orchestral music play a central part"},
+{w:"literature",pos:"noun",def:"written works, especially those considered to have artistic merit"},
+{w:"character",pos:"noun",def:"a person in a novel, play, or film"},
+{w:"realism",pos:"noun",def:"the practice of representing things as they appear in everyday life"},
+{w:"instrument",pos:"noun",def:"an object or device used for producing musical sounds"},
+{w:"classical",pos:"adj",def:"relating to ancient Greek or Roman culture; of serious traditional music"},
+{w:"piano",pos:"noun",def:"a large keyboard instrument with strings struck by hammers"},
+{w:"guitar",pos:"noun",def:"a stringed musical instrument, typically with six strings"},
+{w:"drum",pos:"noun",def:"a percussion instrument sounded by being struck with a stick or the hand"},
+{w:"corporation",pos:"noun",def:"a large company or group of companies"},
+{w:"cooperation",pos:"noun",def:"the process of working together to achieve the same end"},
+{w:"leadership",pos:"noun",def:"the action of leading a group; the state of being a leader"},
+{w:"strategy",pos:"noun",def:"a plan of action designed to achieve a long-term aim"},
+{w:"attitude",pos:"noun",def:"a settled way of thinking or feeling, reflected in behaviour"},
+{w:"responsibility",pos:"noun",def:"the state or fact of having a duty to deal with something"},
+{w:"productivity",pos:"noun",def:"the efficiency of production; output per unit of input"},
+{w:"rule",pos:"noun",def:"a regulation or principle governing conduct within a system"},
+{w:"efficiency",pos:"noun",def:"accomplishing something with minimum waste of time or resources"},
+{w:"profit",pos:"noun",def:"a financial gain; the surplus remaining after costs are deducted"},
+{w:"income",pos:"noun",def:"money received, especially on a regular basis, for work or investment"},
+{w:"financial",pos:"adj",def:"relating to finance or monetary matters"},
+{w:"individual",pos:"noun",def:"a single human being as distinct from a group"},
+{w:"policy",pos:"noun",def:"a course of action adopted by an organisation or government"},
+{w:"specialist",pos:"noun",def:"a person who concentrates on a particular subject or activity"},
+{w:"expansion",pos:"noun",def:"the action of becoming larger or more extensive"},
+{w:"atmosphere",pos:"noun",def:"the envelope of gases surrounding the earth; the pervading tone of a place"},
+{w:"urban climate",pos:"noun",def:"the typical pattern of weather found in a city or urban area"},
+{w:"landscape",pos:"noun",def:"all the visible features of an area of countryside"},
+{w:"wetland",pos:"noun",def:"low-lying land that is seasonally flooded; swamp or marsh"},
+{w:"swamp",pos:"noun",def:"an area of waterlogged ground covered with trees and plants"},
+{w:"marsh",pos:"noun",def:"an area of low-lying land which is flooded in wet seasons"},
+{w:"surface",pos:"noun",def:"the outside or uppermost layer of something"},
+{w:"humidity",pos:"noun",def:"the amount of water vapour present in the atmosphere"},
+{w:"moisture",pos:"noun",def:"water or other liquid causing slight wetness"},
+{w:"drought",pos:"noun",def:"a prolonged period of abnormally low rainfall"},
+{w:"flood",pos:"noun",def:"an overflow of a large amount of water beyond its normal confines"},
+{w:"temperature",pos:"noun",def:"the degree or intensity of heat in a substance or the atmosphere"},
+{w:"sea level",pos:"noun",def:"the level of the sea's surface, used as a standard to measure altitude"},
+{w:"sea floor",pos:"noun",def:"the bottom of the sea"},
+{w:"erosion",pos:"noun",def:"the gradual wearing away of rock or soil by natural agents"},
+{w:"radiation",pos:"noun",def:"energy emitted as waves or moving particles, especially electromagnetic"},
+{w:"desert",pos:"noun",def:"a waterless, desolate area of land with little or no vegetation"},
+{w:"volcano",pos:"noun",def:"a mountain with a crater through which lava, rock, and gases erupt"}
+]},
+10:{name:"Scene 10",topic:"Natural Science",words:[
+{w:"migration",pos:"noun",def:"the seasonal movement of animals or people from one region to another"},
+{w:"rare species",pos:"noun",def:"a type of organism that exists in only small numbers"},
+{w:"mammal",pos:"noun",def:"a warm-blooded vertebrate with hair and young fed with milk"},
+{w:"cold-blooded animals",pos:"noun",def:"animals whose body temperature varies with the surrounding environment"},
+{w:"reptile",pos:"noun",def:"a cold-blooded vertebrate with scales, such as a snake or lizard"},
+{w:"amphibian",pos:"noun",def:"a cold-blooded vertebrate that lives both in water and on land"},
+{w:"marine animals",pos:"noun",def:"animals that live and feed in the sea"},
+{w:"creature",pos:"noun",def:"a living being, especially an animal"},
+{w:"elephant",pos:"noun",def:"the world's largest land animal, with a trunk, tusks, and large ears"},
+{w:"crocodile",pos:"noun",def:"a large predatory reptile with a long snout, living near water"},
+{w:"dolphin",pos:"noun",def:"a small gregarious toothed whale with a snout-like beak"},
+{w:"whale",pos:"noun",def:"a very large marine mammal that breathes through a blowhole"},
+{w:"kangaroo",pos:"noun",def:"a large Australian marsupial with powerful hind legs for jumping"},
+{w:"giraffe",pos:"noun",def:"a very tall African mammal with an exceptionally long neck and legs"},
+{w:"koala",pos:"noun",def:"a bearlike tree-dwelling Australian marsupial that eats eucalyptus leaves"},
+{w:"falcon",pos:"noun",def:"a fast-flying bird of prey with long pointed wings"},
+{w:"hippo",pos:"noun",def:"a large African mammal that lives near rivers and lakes"},
+{w:"shark",pos:"noun",def:"a large predatory marine fish with sharp teeth"},
+{w:"insect",pos:"noun",def:"a small arthropod with six legs, a body in three parts, and often wings"},
+{w:"pest",pos:"noun",def:"a destructive insect or animal harmful to crops, livestock, or humans"},
+{w:"turtle",pos:"noun",def:"a slow-moving reptile enclosed in a bony shell"},
+{w:"penguin",pos:"noun",def:"a flightless seabird of the southern hemisphere, black and white"},
+{w:"frog",pos:"noun",def:"a tailless amphibian with a short body and long hind legs for jumping"},
+{w:"butterfly",pos:"noun",def:"a nectar-feeding insect with large, colourful wings"},
+{w:"camel",pos:"noun",def:"a large, long-necked ungulate with one or two humps for storing fat"},
+{w:"dinosaur",pos:"noun",def:"a Mesozoic reptile, often of enormous size, now extinct"},
+{w:"predator",pos:"noun",def:"an animal that hunts and kills other animals for food"},
+{w:"rival",pos:"noun",def:"a person or animal competing with another for the same objective"},
+{w:"bacteria",pos:"noun",def:"microscopic single-celled organisms, some causing disease"},
+{w:"habitat",pos:"noun",def:"the natural home or environment of an animal, plant, or organism"},
+{w:"evolution",pos:"noun",def:"the process by which different species develop from earlier forms"},
+{w:"botany",pos:"noun",def:"the scientific study of plants"},
+{w:"vegetation",pos:"noun",def:"plants considered collectively; plant life of a region"},
+{w:"forest",pos:"noun",def:"a large area covered chiefly with trees and undergrowth"},
+{w:"weed",pos:"noun",def:"a wild plant growing where it is not wanted and in competition with plants"},
+{w:"root",pos:"noun",def:"the part of a plant that attaches it to the ground and absorbs water"},
+{w:"stem",pos:"noun",def:"the main stalk of a plant from which leaves and flowers grow"},
+{w:"branch",pos:"noun",def:"a part of a tree growing out from the trunk or bough"},
+{w:"leaves",pos:"noun",def:"the flat green organs of a plant that carry out photosynthesis"},
+{w:"seed",pos:"noun",def:"the unit of reproduction of a flowering plant"},
+{w:"corn",pos:"noun",def:"a North American cereal plant that produces large grains on a cob"},
+{w:"fertilizer",pos:"noun",def:"a chemical or natural substance added to soil to increase its productivity"},
+{w:"laboratory",pos:"noun",def:"a room equipped for scientific experiments and research"},
+{w:"solar energy",pos:"noun",def:"radiant energy emitted by the sun, converted into electricity"},
+{w:"tidal energy",pos:"noun",def:"energy generated from the movement of sea tides"},
+{w:"wind energy",pos:"noun",def:"power obtained by harnessing the energy of the wind"},
+{w:"nuclear energy",pos:"noun",def:"energy released in nuclear fission or fusion"},
+{w:"non-renewable",pos:"adj",def:"denoting a natural resource that cannot be replenished once used"},
+{w:"conservation",pos:"noun",def:"the protection of the natural environment from destruction or pollution"},
+{w:"mine",pos:"noun",def:"an excavation in the earth for extracting coal or other minerals"},
+{w:"rubber",pos:"noun",def:"a tough elastic substance made from the sap of a tropical tree"},
+{w:"fiber/fibre",pos:"noun",def:"a thread or filament forming part of a plant or animal structure"},
+{w:"cotton",pos:"noun",def:"a soft white fibrous substance from the cotton plant, used to make fabric"},
+{w:"concentration",pos:"noun",def:"the amount of a substance in a given volume; the action of focusing"},
+{w:"metal",pos:"noun",def:"a solid material which is typically hard, shiny, and a good conductor"},
+{w:"steel",pos:"noun",def:"a hard, strong alloy of iron with carbon, used in building and making tools"},
+{w:"iron",pos:"noun",def:"a strong magnetic grey metal, the chemical element of atomic number 26"},
+{w:"concrete",pos:"noun",def:"a building material made from cement, sand, aggregate, and water"},
+{w:"plastic",pos:"noun",def:"a synthetic material made from a range of organic polymers"},
+{w:"environmental/science",pos:"noun",def:"the study of the environment and human impact upon it"},
+{w:"ecology",pos:"noun",def:"the branch of biology concerned with organisms and their environments"},
+{w:"global warming",pos:"noun",def:"a gradual increase in the overall temperature of the earth's atmosphere"},
+{w:"nature",pos:"noun",def:"the phenomena of the physical world, including plants, animals, and landscape"},
+{w:"recycling",pos:"noun",def:"converting waste into reusable material"},
+{w:"preservation",pos:"noun",def:"the action of keeping something safe from harm or decay"},
+{w:"circulation",pos:"noun",def:"movement through a closed circuit; the distribution of something"},
+{w:"sewage",pos:"noun",def:"waste water and excrement conveyed in sewers"},
+{w:"pollution",pos:"noun",def:"the presence in the environment of harmful or poisonous substances"},
+{w:"carbon dioxide",pos:"noun",def:"a colourless, odourless gas produced by burning carbon and by respiration"},
+{w:"emission",pos:"noun",def:"the production and discharge of something, especially gas or radiation"},
+{w:"shortage",pos:"noun",def:"a state of not having enough of something that is needed"},
+{w:"fuel-efficient",pos:"adj",def:"consuming fuel economically; using relatively little fuel"},
+{w:"cost-effective",pos:"adj",def:"effective in relation to its cost; providing good value for money"},
+{w:"litter",pos:"noun",def:"rubbish left in an open or public place"},
+{w:"sustainable",pos:"adj",def:"able to be maintained at a certain rate without depleting natural resources"},
+{w:"biodiversity",pos:"noun",def:"the variety of life in a habitat or ecosystem"},
+{w:"restriction",pos:"noun",def:"a limiting condition or measure; a rule that limits what is allowed"}
+]}};
+// ── State ───────────────────────────────────────────────
+let sel=new Set([1]),words=[],idx=0,flipped=false;
+let shuffleOn=false,dictShuffleOn=false,autoSpeakOn=true;
+let results=[],answered=false;
+
+function init(){
+  const g=document.getElementById('unit-grid');
+  for(let i=1;i<=10;i++){
+    const s=SCENES[i],b=document.createElement('div');
+    b.className='unit-btn'+(sel.has(i)?' selected':'');
+    b.innerHTML=`<span class="unit-num">${i}</span><div class="unit-topic">${s.topic}</div><div class="unit-count">${s.words.length} words</div>`;
+    b.onclick=()=>tog(i,b);b.dataset.u=i;g.appendChild(b);
+  }
+  updateCount();
+}
+function tog(n,b){sel.has(n)?(sel.delete(n),b.classList.remove('selected')):(sel.add(n),b.classList.add('selected'));updateCount();}
+function selectAll(){for(let i=1;i<=10;i++){sel.add(i);document.querySelector('[data-u="'+i+'"]').classList.add('selected');}updateCount();}
+function selectNone(){sel.clear();document.querySelectorAll('.unit-btn').forEach(b=>b.classList.remove('selected'));updateCount();}
+function updateCount(){
+  const t=[...sel].reduce((s,u)=>s+SCENES[u].words.length,0);
+  document.getElementById('sel-count').textContent=sel.size>0?`${sel.size} unit${sel.size>1?'s':''} · ${t} words`:'Select at least one unit';
+}
+function scr(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active');}
+function goHome(){scr('home');}
+function collect(sh){let w=[];[...sel].sort((a,b)=>a-b).forEach(u=>w.push(...SCENES[u].words));return sh?shuf([...w]):w;}
+function shuf(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function startStudy(mode){
+  if(sel.size===0){alert('Please select at least one unit.');return;}
+  words=collect(mode==='flashcard'?shuffleOn:dictShuffleOn);
+  idx=0;answered=false;
+  if(mode==='flashcard'){renderCard();scr('flashcard');speak(words[0].w);}
+  else{results=[];renderDict();scr('dictation');if(autoSpeakOn)setTimeout(()=>speakD(),400);}
+}
+
+// Flashcard
+function renderCard(){
+  const w=words[idx],tot=words.length,pct=((idx+1)/tot*100).toFixed(1);
+  document.getElementById('fc-word').textContent=w.w;
+  document.getElementById('fc-pos-front').textContent=w.pos;
+  document.getElementById('fc-word-back').textContent=w.w;
+  document.getElementById('fc-pos-back').textContent=w.pos;
+  document.getElementById('fc-def').textContent=w.def;
+  ['fc-badge','fc-badge-back'].forEach(id=>document.getElementById(id).textContent=`${idx+1}/${tot}`);
+  document.getElementById('fc-prog').style.width=pct+'%';
+  document.getElementById('fc-lbl').textContent=`${idx+1} / ${tot}`;
+  document.getElementById('card-inner').classList.remove('flipped');
+  flipped=false;
+}
+function flipCard(){flipped=!flipped;document.getElementById('card-inner').classList.toggle('flipped',flipped);}
+function nextCard(){
+  if(idx<words.length-1){idx++;renderCard();speak(words[idx].w);}
+  else if(confirm("You've reached the end! 🎉\n\nStart again?")){idx=0;if(shuffleOn)words=shuf([...words]);renderCard();speak(words[0].w);}
+}
+function prevCard(){if(idx>0){idx--;renderCard();}}
+function speakCurrent(){speak(words[idx].w);}
+function toggleShuffle(){
+  shuffleOn=!shuffleOn;document.getElementById('shuffle-tog').classList.toggle('on',shuffleOn);
+  words=shuffleOn?shuf([...words]):collect(false);idx=0;renderCard();
+}
+
+// Dictation
+function renderDict(){
+  const tot=words.length,pct=((idx+1)/tot*100).toFixed(1);
+  document.getElementById('dt-num').textContent=idx+1;
+  document.getElementById('dt-prog').style.width=pct+'%';
+  document.getElementById('dt-lbl').textContent=`${idx+1} / ${tot}`;
+  document.getElementById('dt-hint').innerHTML='Press <kbd>Ctrl</kbd> to hear · <kbd>Enter</kbd> to submit';
+  const inp=document.getElementById('dt-input');
+  inp.value='';inp.className='dict-input';inp.disabled=false;inp.readOnly=false;
+  document.getElementById('result-area').innerHTML='';
+  document.getElementById('dt-action').innerHTML='';
+  answered=false;
+  setTimeout(()=>inp.focus(),80);
+}
+
+// Global keyboard shortcut handler — attached to document
+function handleKey(e){
+  // Ctrl (without other modifiers) = play word
+  if((e.key==='Control'||e.ctrlKey)&&!e.shiftKey&&!e.altKey&&!e.metaKey&&e.key==='Control'){
+    e.preventDefault();speakD();return;
+  }
+  if(e.key==='Enter'){
+    e.preventDefault();
+    if(!answered) checkDict();
+    else if(document.getElementById('screen-dictation').classList.contains('active')) nextDict();
+  }
+}
+
+function checkDict(){
+  if(answered)return;
+  const inp=document.getElementById('dt-input'),v=inp.value.trim();
+  if(!v){inp.focus();return;}
+  const w=words[idx],ok=v.toLowerCase()===w.w.toLowerCase();
+  results.push({word:w.w,pos:w.pos,def:w.def,answer:v,ok});
+  answered=true;
+  inp.className='dict-input '+(ok?'correct':'wrong');
+  // Show result
+  document.getElementById('result-area').innerHTML=ok
+    ?`<div class="rbanner ok">✓ Correct! <span style="opacity:.6;font-size:11px;margin-left:6px;">Well done</span></div>`
+    :`<div class="rbanner bad">✗ Incorrect — the answer is: <span class="ans-word">${w.w}</span></div>`;
+  if(!ok) speak(w.w);
+  // Show action buttons
+  const last=idx===words.length-1;
+  const nextBtn=last
+    ?`<button class="btn btn-gold" onclick="showResults()">View Results →</button>`
+    :`<button class="btn btn-gold" onclick="nextDict()">Next <kbd style="background:rgba(0,0,0,0.3);border-color:rgba(0,0,0,0.4);color:#0a0a0f">Enter</kbd></button>`;
+  // "Try Again" re-enables input for the current word without recording a new result
+  const retryBtn=`<button class="btn btn-card" onclick="retryCurrentWord()" style="margin-left:8px">Try Again</button>`;
+  document.getElementById('dt-action').innerHTML=nextBtn+retryBtn;
+  document.getElementById('dt-hint').innerHTML='Press <kbd>Ctrl</kbd> to hear again';
+}
+
+function retryCurrentWord(){
+  // Remove the last result entry so it won't count until re-submitted
+  results.pop();
+  const inp=document.getElementById('dt-input');
+  inp.value='';inp.className='dict-input';inp.disabled=false;inp.readOnly=false;
+  document.getElementById('result-area').innerHTML='';
+  document.getElementById('dt-action').innerHTML='';
+  document.getElementById('dt-hint').innerHTML='Press <kbd>Ctrl</kbd> to hear · <kbd>Enter</kbd> to submit';
+  answered=false;
+  setTimeout(()=>inp.focus(),60);
+}
+
+function nextDict(){
+  if(!answered)return;
+  if(idx<words.length-1){idx++;renderDict();if(autoSpeakOn)setTimeout(()=>speakD(),260);}
+  else showResults();
+}
+function speakD(){speak(words[idx].w);}
+function toggleDictShuffle(){dictShuffleOn=!dictShuffleOn;document.getElementById('dt-sh-tog').classList.toggle('on',dictShuffleOn);}
+function toggleAutoSpeak(){autoSpeakOn=!autoSpeakOn;document.getElementById('as-tog').classList.toggle('on',autoSpeakOn);}
+
+// Results
+function showResults(){
+  const tot=results.length,ok=results.filter(r=>r.ok).length,err=tot-ok,pct=tot?Math.round(ok/tot*100):0;
+  document.getElementById('score-pct').textContent=pct+'%';
+  document.getElementById('score-ring').style.setProperty('--deg',(pct/100*360)+'deg');
+  document.getElementById('res-ok').textContent=ok;
+  document.getElementById('res-err').textContent=err;
+  document.getElementById('res-tot').textContent=tot;
+  let title,sub;
+  if(pct===100){title='Perfect! 🏆';sub='Every word spelled correctly.';}
+  else if(pct>=80){title='Excellent! 🎉';sub=`${pct}% correct. Keep it up!`;}
+  else if(pct>=60){title='Good effort 👍';sub=`${pct}% correct. Room to improve.`;}
+  else{title='Keep practising 💪';sub=`${pct}% correct. Review the words below.`;}
+  document.getElementById('res-title').textContent=title;
+  document.getElementById('res-sub').textContent=sub;
+  const wrong=results.filter(r=>!r.ok);
+  const c=document.getElementById('wrong-container');
+  if(wrong.length){
+    c.innerHTML='<div class="wrong-list"><div class="wl-hdr">✗ Incorrect words ('+wrong.length+')</div>'+
+      wrong.map((r,i)=>`<div class="wi"><div class="wi-n">${i+1}</div><div class="wi-info"><div class="wi-word">${r.word} <span style="font-family:'Playfair Display',serif;font-style:italic;font-size:13px;color:var(--accent2);font-weight:400;">${r.pos}</span></div><div class="wi-def">${r.def}</div><div class="wi-yours">You wrote: ${r.answer||'(nothing)'}</div></div><button class="speak-btn" onclick="speak('${r.word.replace(/'/g,"\\'")}')">🔊</button></div>`).join('')+
+      '</div>';
+    document.getElementById('retry-btn').style.display='';
+  }else{c.innerHTML='';document.getElementById('retry-btn').style.display='none';}
+  scr('results');
+}
+function retryWrong(){
+  const w=results.filter(r=>!r.ok).map(r=>({w:r.word,pos:r.pos,def:r.def}));
+  if(!w.length)return;
+  words=dictShuffleOn?shuf([...w]):w;idx=0;results=[];answered=false;
+  renderDict();scr('dictation');if(autoSpeakOn)setTimeout(()=>speakD(),400);
+}
+
+// TTS — robust version that handles browsers where synth gets stuck
+function speak(text){
+  if(!window.speechSynthesis) return;
+  // Resume in case paused, then cancel any current speech
+  window.speechSynthesis.resume();
+  window.speechSynthesis.cancel();
+  // Small delay lets cancel() fully settle before speaking
+  setTimeout(()=>{
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang='en-GB';u.rate=0.82;u.pitch=1;
+    // Workaround: Chrome bug where long synth sessions go silent — keep it awake
+    window.speechSynthesis.speak(u);
+  },120);
+}
+
+// Global keyboard shortcuts
+document.addEventListener('keydown',function(e){
+  const onDict=document.getElementById('screen-dictation').classList.contains('active');
+  const onCard=document.getElementById('screen-flashcard').classList.contains('active');
+  // Ctrl alone = play
+  if(e.key==='Control'&&!e.shiftKey&&!e.altKey&&!e.metaKey){
+    e.preventDefault();
+    if(onDict) speakD();
+    else if(onCard) speakCurrent();
+    return;
+  }
+  // Enter = check or next (only in dictation)
+  if(e.key==='Enter'&&onDict){
+    e.preventDefault();
+    if(!answered) checkDict();
+    else nextDict();
+  }
+});
+
+init();
+</script></body></html>
